@@ -1,0 +1,249 @@
+{
+  "_comment": "This is the only file you edit to tune the system. The scraper reads everything from here. You do not need to touch the Python code to add search terms, change keywords, or adjust scoring.",
+  "since_date": "2024-01-01",
+  "govuk_search_terms": [
+    "local audit reform",
+    "local audit office",
+    "audit backstop",
+    "public sector audit appointments",
+    "local government reorganisation",
+    "english devolution bill",
+    "exceptional financial support",
+    "best value intervention",
+    "whole of government accounts",
+    "code of practice local authority accounting",
+    "ministerial envoy nottingham",
+    "continuous improvement committee",
+    "shadow authority"
+  ],
+  "govuk_organisations": [
+    "ministry-of-housing-communities-local-government"
+  ],
+  "watched_govuk_paths": [
+    "/government/collections/local-government-reorganisation-policy-and-programme-updates",
+    "/government/collections/nottinghamshire-and-nottingham-local-government-reorganisation",
+    "/government/consultations/local-government-reorganisation-in-nottinghamshire-and-nottingham",
+    "/government/publications/local-audit-reform",
+    "/government/collections/statutory-intervention-nottingham-city-council-minded-to-decision"
+  ],
+  "parliament_search_terms": [
+    "english devolution",
+    "local audit",
+    "local government reorganisation"
+  ],
+  "theme_keywords": {
+    "Audit Procurement": [
+      "public sector audit appointments",
+      "psaa",
+      "local audit office",
+      "audit contract",
+      "audit appointment",
+      "audit market",
+      "key audit partner"
+    ],
+    "Financial Reporting": [
+      "backstop",
+      "disclaimed opinion",
+      "statement of accounts",
+      "code of practice",
+      "cipfa",
+      "outturn",
+      "whole of government accounts"
+    ],
+    "Internal Controls": [
+      "internal audit",
+      "counter fraud",
+      "risk management",
+      "control environment",
+      "assurance",
+      "whistleblowing"
+    ],
+    "Governance and Transparency": [
+      "audit committee",
+      "improvement committee",
+      "governance",
+      "standards committee",
+      "transparency",
+      "scrutiny",
+      "annual governance statement",
+      "commissioner",
+      "statutory intervention",
+      "best value",
+      "ministerial envoy"
+    ],
+    "LGR Transition": [
+      "reorganisation",
+      "unitary",
+      "shadow authority",
+      "vesting day",
+      "demerger",
+      "successor body",
+      "devolution"
+    ]
+  },
+  "materiality_rules": {
+    "local_keywords": [
+      "nottingham",
+      "nottinghamshire",
+      "east midlands combined county authority",
+      "emcca"
+    ],
+    "intervention_keywords": [
+      "statutory intervention",
+      "commissioner",
+      "section 114",
+      "best value intervention",
+      "ministerial envoy",
+      "exceptional financial support",
+      "improvement committee",
+      "continuous improvement committee"
+    ],
+    "audit_keywords": [
+      "public sector audit appointments",
+      "psaa",
+      "local audit office",
+      "audit backstop",
+      "backstop",
+      "local audit reform",
+      "local audit",
+      "audit committee"
+    ],
+    "transition_keywords": [
+      "local government reorganisation",
+      "devolution",
+      "unitary",
+      "reorganisation",
+      "lgr"
+    ]
+  },
+  "exclusion_rules": {
+    "_comment": "Items matching these are dropped completely before scoring - never written to the Intelligence sheet. Ported from the old scraper's is_excluded() filter so the feed doesn't fill up with other areas' news.",
+    "exclude_keywords": [
+      "revenue and customs",
+      "hmrc",
+      "employment tribunal",
+      "planning inspector"
+    ],
+    "exclude_nations": [
+      "scotland",
+      "scottish",
+      "wales",
+      "welsh",
+      "northern ireland"
+    ],
+    "exclude_lgr_councils": [
+      "cambridgeshire",
+      "derbyshire",
+      "devon",
+      "east sussex",
+      "essex",
+      "gloucestershire",
+      "hampshire",
+      "hertfordshire",
+      "kent",
+      "lancashire",
+      "leicestershire",
+      "lincolnshire",
+      "norfolk",
+      "oxfordshire",
+      "staffordshire",
+      "suffolk",
+      "surrey",
+      "warwickshire",
+      "west sussex",
+      "worcestershire"
+    ]
+  },
+  "psaa": {
+    "url": "https://www.psaa.co.uk/latest-news/"
+  },
+  "nao": {
+    "enabled": true,
+    "max_items": 40,
+    "keywords": [
+      "local audit",
+      "local government",
+      "audit committee",
+      "financial sustainability",
+      "section 114",
+      "exceptional financial support",
+      "internal audit",
+      "audit office",
+      "local government reorganisation",
+      "backstop",
+      "disclaimed",
+      "governance",
+      "nottingham"
+    ]
+  },
+  "cipfa": {
+    "enabled": true,
+    "max_items": 40,
+    "keywords": [
+      "audit",
+      "internal audit",
+      "local government",
+      "local authority",
+      "accounting",
+      "code of practice",
+      "governance",
+      "financial management",
+      "treasury management",
+      "cipfa/lasaac"
+    ]
+  },
+  "parliament_committees": {
+    "enabled": true,
+    "max_per_committee": 20,
+    "committee_ids": [
+      127,
+      398,
+      448
+    ],
+    "keywords": [
+      "local audit",
+      "local government",
+      "financial sustainability",
+      "section 114",
+      "exceptional financial support",
+      "devolution",
+      "local government reorganisation",
+      "backstop",
+      "intervention",
+      "nottingham",
+      "nottinghamshire"
+    ]
+  },
+  "emcca": {
+    "enabled": true,
+    "max_items": 30,
+    "keywords": []
+  },
+  "ncc_committees": {
+    "_comment": "NCC ModernGov committee pages (committee.nottinghamcity.gov.uk). These are .aspx pages, not the GOV.UK content API, so they need their own scraper and cannot go in watched_govuk_paths. Each meeting becomes an Intelligence item. Best URL is a committee's 'Browse meetings' list: ieListMeetings.aspx?CommitteeId=NNN (Audit=145, Improvement=1175). A mgCommitteeDetails.aspx?ID=NNN page also works - the scraper follows its Browse-meetings link. Add more committees by copying a line into 'pages'. Keywords filter by committee name + link text.",
+    "enabled": true,
+    "base_url": "https://committee.nottinghamcity.gov.uk/",
+    "max_per_page": 25,
+    "since_date": "2026-01-01",
+    "pages": [
+      {
+        "name": "Audit Committee",
+        "url": "https://committee.nottinghamcity.gov.uk/ieListMeetings.aspx?CommitteeId=145"
+      },
+      {
+        "name": "Improvement Committee",
+        "url": "https://committee.nottinghamcity.gov.uk/ieListMeetings.aspx?CommitteeId=1175"
+      }
+    ],
+    "keywords": [
+      "audit",
+      "improvement",
+      "governance",
+      "standards",
+      "treasury",
+      "accounts",
+      "scrutiny",
+      "risk"
+    ]
+  }
+}
