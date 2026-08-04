@@ -217,7 +217,44 @@ def _parse_govuk_results(results, since_date):
 # Source 2: GOV.UK Content API (cascade children of watched collections)
 # ---------------------------------------------------------------------------
 
-def fetch_watched_paths(paths):
+def _attachment_items(payload, parent_title, parent_published, since_date=""):
+    """
+    Pull the PDFs hanging off a GOV.UK page.
+
+    The substance often lives in the attachment, not the page. The MHCLG Local
+    Audit Transition Plan — which sets the LAO milestone timeline and corrected
+    our PSAA contract end date from 2027/28 to 2030 — is an attachment on the
+    "Local audit reform" page we were already watching, so watching the page
+    alone never surfaced it.
+    """
+    out = []
+    for att in payload.get("details", {}).get("attachments") or []:
+        title = (att.get("title") or "").strip()
+        url = att.get("url") or ""
+        if not title or not url:
+            continue
+        published = to_iso_date(att.get("created_at")) or parent_published
+        # A watched page drags its entire document history along — the NCC
+        # intervention collection alone reaches back to 2022. Same date cut as
+        # every other source, applied here because attachments are by far the
+        # biggest source of back-catalogue.
+        if since_date and published and published < since_date:
+            continue
+        out.append({
+            "Title": title,
+            "Source": "GOV.UK",
+            "Category": "Attachment",
+            "Published": published,
+            "URL": url,
+            # "Ministerial letter to local bodies" scores as nothing on its own.
+            # The parent publication is what gives the title its meaning, so the
+            # scorer sees both.
+            "ScoreText": f"{title} {parent_title}",
+        })
+    return out
+
+
+def fetch_watched_paths(paths, since_date=""):
     items = []
     for path in paths:
         try:
@@ -228,25 +265,36 @@ def fetch_watched_paths(paths):
             continue
 
         title = (payload.get("title") or "").strip()
+        published = to_iso_date(payload.get("public_updated_at"))
         if title:
             items.append({
                 "Title": title, "Source": "GOV.UK", "Category": "Collection",
-                "Published": to_iso_date(payload.get("public_updated_at")),
+                "Published": published,
                 "URL": f"https://www.gov.uk{path}",
             })
+        items.extend(_attachment_items(payload, title, published, since_date))
 
         for child in payload.get("links", {}).get("documents", []) or []:
             ctitle = (child.get("title") or "").strip()
             base = child.get("base_path") or ""
             if not ctitle or not base:
                 continue
+            cpublished = to_iso_date(
+                child.get("public_updated_at") or child.get("first_published_at")
+            )
             items.append({
                 "Title": ctitle, "Source": "GOV.UK", "Category": "Guidance",
-                "Published": to_iso_date(
-                    child.get("public_updated_at") or child.get("first_published_at")
-                ),
+                "Published": cpublished,
                 "URL": f"https://www.gov.uk{base}",
             })
+            # The child listing does not carry attachments, so each document
+            # needs its own fetch. One call per document on a weekly run.
+            try:
+                cpayload = get_json(f"{GOVUK_CONTENT}{base}")
+                items.extend(_attachment_items(cpayload, ctitle, cpublished, since_date))
+            except requests.RequestException:
+                pass
+            time.sleep(RATE_LIMIT)
         time.sleep(RATE_LIMIT)
     return items
 
@@ -455,7 +503,12 @@ def update_workbook(new_items, config):
     added_by_verdict = {"Yes": 0, "Unclear": 0}
     possible_obligations = []
     for item in new_items:
-        if is_excluded(item["Title"], exclusions, item.get("DocumentType", "")):
+        # Match exclusions against ScoreText, not just Title. An attachment
+        # called "Letter: Kent and Medway" carries no LGR wording of its own, so
+        # the county rule never fired on the title alone; ScoreText adds the
+        # parent publication and the rule catches it.
+        exclusion_text = item.get("ScoreText", item["Title"])
+        if is_excluded(exclusion_text, exclusions, item.get("DocumentType", "")):
             excluded += 1
             continue
 
@@ -550,7 +603,7 @@ def main():
     print(f"  {len(items)} items")
 
     print("Fetching watched GOV.UK collections...")
-    watched = fetch_watched_paths(config.get("watched_govuk_paths", []))
+    watched = fetch_watched_paths(config.get("watched_govuk_paths", []), since)
     print(f"  {len(watched)} items")
     items.extend(watched)
 
