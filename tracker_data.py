@@ -549,10 +549,16 @@ ACTIONS = [
     _ac(
         "A-005", "OB-A10",
         "Prepare an Audit Committee briefing note on the LAO transition and its "
-        "implications for NCC's PSAA-procured contract to 2027/28.",
-        OWNERS["Internal Audit"], "", "2026-09-30", "Not started", 0, "",
-        "Supports OB-A10. Note Bill Butler as preferred LAO Chair candidate (May "
-        "2026).",
+        "implications for NCC's PSAA-procured audit contract, which now runs to "
+        "2030.",
+        OWNERS["Internal Audit"], "", "2026-09-30", "Not started", 0,
+        "https://assets.publishing.service.gov.uk/media/6926f871345e31ab14ecf524/"
+        "Local_Audit_Transition_Plan.pdf",
+        "Supports OB-A10. Milestones from the MHCLG Local Audit Transition Plan "
+        "(Nov 2025), Annex A: LAO legally established Autumn 2026; auditor "
+        "appointment and contracting duties, PSAA staff and the existing "
+        "contracts transfer to the LAO Spring 2027. Bill Butler CONFIRMED as "
+        "LAO Chair from 1 July 2026 (was recorded as preferred candidate).",
     ),
     _ac(
         "A-006", "OB-A12",
@@ -827,5 +833,38 @@ ACTIONS = [
         "Evidence: structural gap analysis signed off by the Director of Policy "
         "and reported to the LGR programme board. Establishes the EMCCA / "
         "unitary boundary before day-one service allocation is fixed.",
+    ),
+    _ac(
+        "A-034", "OB-A7",
+        "Confirm whether NCC gave MHCLG permission for its auditor to share the "
+        "Auditor's Annual Report, the ISA 260 and the audit capacity assessment "
+        "with the Department, and resolve the position with MHCLG if it did not.",
+        OWNERS["Section 151"], "2026-08-04", "2026-09-25", "Not started", 0,
+        "https://assets.publishing.service.gov.uk/media/692992e6a245b0985f034280/"
+        "Ministerial_letter_to_local_bodies.pdf",
+        "RETROSPECTIVE CHECK — BOTH DEADLINES HAVE PASSED. The Minister of State "
+        "wrote to Chief Executives, CFOs and Leaders on 27 November 2025 asking "
+        "for the AAR and ISA 260 by 31 March 2026 and an auditor capacity "
+        "assessment by end July 2026. The letter says that where permission is "
+        "not given, MHCLG officials will follow up directly. There is no record "
+        "either way in the tracker, so the answer needs establishing rather than "
+        "assuming. Evidence: the permission response to the audit firm, or "
+        "correspondence with MHCLG.",
+    ),
+    _ac(
+        "A-035", "OB-A8",
+        "Agree the build-back trajectory with the external auditor for clearing "
+        "any backstop-related disclaimed opinions, working to the 30 November "
+        "2028 backstop, and report the trajectory to the Audit Committee.",
+        OWNERS["Section 151"], "2026-08-04", "2026-11-27", "Not started", 0,
+        "https://assets.publishing.service.gov.uk/media/692992e6a245b0985f034280/"
+        "Ministerial_letter_to_local_bodies.pdf",
+        "The build-back programme aims to clear backstop-related disclaimers by "
+        "the end of 2027/28, for which the backstop date is 30 November 2028. "
+        "Government has said progress is slower than hoped and that NO FURTHER "
+        "build-back grant was paid in 2025/26, with the funding model reviewed "
+        "in summer and autumn 2026 — so the cost of this sits with NCC unless "
+        "that review changes it. The letter also stresses that authorities must "
+        "adequately resource their finance functions to supply audit evidence.",
     ),
 ]
