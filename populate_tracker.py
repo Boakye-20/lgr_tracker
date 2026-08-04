@@ -25,6 +25,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 
 from audit_logic import action_coverage_warnings, validate_obligation
+from sheet_format import format_data_sheet
 from tracker_data import (
     ACTION_COLUMNS,
     ACTIONS,
@@ -55,11 +56,29 @@ def _header_index(ws, name):
     return None
 
 
+def _actions_by_obligation():
+    """Reverse the Parent Obligation ID link so each obligation lists its actions."""
+    mapping: dict[str, list[str]] = {}
+    for ac in ACTIONS:
+        parent = ac.get("Parent Obligation ID")
+        if parent:
+            mapping.setdefault(parent, []).append(ac["Action ID"])
+    return {k: ", ".join(sorted(v)) for k, v in mapping.items()}
+
+
 def write_obligations(ws):
     _ensure_headers(ws, OBLIGATION_COLUMNS)
     _clear_data_rows(ws)
+    linked = _actions_by_obligation()
     for ob in OBLIGATIONS:
-        ws.append([ob.get(col, "") for col in OBLIGATION_COLUMNS])
+        row = dict(ob)
+        row["Linked Actions"] = linked.get(ob["Obligation ID"], "")
+        ws.append([row.get(col, "") for col in OBLIGATION_COLUMNS])
+
+    # Re-running this script would otherwise stack a fresh copy of each dropdown
+    # on top of the previous run's, leaving stale ranges behind after a column
+    # move. Clear them first so only the ones added below survive.
+    ws.data_validations.dataValidation = []
 
     # Re-apply dropdowns on the right columns (recomputed, so they stay correct
     # even though Obligation Level was appended).
@@ -147,6 +166,12 @@ def main():
 
     write_obligations(wb["Obligations"])
     write_actions(wb["Actions"])
+
+    # Rows were just rewritten, so the table treatment has to go back on.
+    format_data_sheet(wb["Obligations"])
+    format_data_sheet(wb["Actions"])
+    if "Intelligence" in wb.sheetnames:
+        format_data_sheet(wb["Intelligence"])
 
     try:
         wb.save(WORKBOOK)

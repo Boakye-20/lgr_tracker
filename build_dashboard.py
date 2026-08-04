@@ -12,13 +12,14 @@ Run just before showing the tracker to anyone. Close the workbook first.
 
 from __future__ import annotations
 
+import math
 import sys
 from collections import Counter
 from datetime import date, datetime
 
 from openpyxl import load_workbook
 from openpyxl.chart import BarChart, PieChart, Reference
-from openpyxl.chart.label import DataLabelList
+from openpyxl.chart.label import DataLabel, DataLabelList
 from openpyxl.chart.series import DataPoint
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
@@ -58,6 +59,31 @@ BORD_BOT_G = Border(bottom=Side(style="medium", color=NCC_GREEN))
 # ── Fills ────────────────────────────────────────────────────────────────────
 def fill(hex_colour):
     return PatternFill("solid", fgColor=hex_colour)
+
+
+# ── Layout grid ──────────────────────────────────────────────────────────────
+# Everything sits on one 12-column grid (B..M) of equal-width columns, so the
+# four KPI tiles (3 columns each) and the three panels / charts (4 columns
+# each) always line up on a column boundary and can never overlap.
+FIRST_COL  = 2                              # column B
+GRID_COLS  = 12
+LAST_COL   = FIRST_COL + GRID_COLS - 1      # column M
+COL_W      = 14                             # width in characters of every grid column
+
+TILE_SPAN  = 3
+PANEL_SPAN = 4
+LABEL_SPAN = PANEL_SPAN - 2                 # label 2 cols, value 1 col, gutter 1 col
+
+TILE_ANCHORS  = [FIRST_COL + i * TILE_SPAN  for i in range(4)]
+PANEL_ANCHORS = [FIRST_COL + i * PANEL_SPAN for i in range(3)]
+
+# Excel column width -> pixels (Calibri 11), used to size charts to their panel.
+COL_PX     = COL_W * 7 + 5
+PANEL_PX   = PANEL_SPAN * COL_PX
+GUTTER_PX  = 14
+CHART_W_CM = (PANEL_PX - GUTTER_PX) * 2.54 / 96
+CHART_H_CM = 8.5
+BAND_ROW_PT = 15                            # row height reserved beneath a chart
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -124,46 +150,76 @@ def _cell(ws, col, row, value=None, *, font=None, fill_hex=None,
     return c
 
 
+def _block(ws, col, row, span, value=None, **kw):
+    """Write a value into a merged run of `span` columns.
+
+    Every cell in the run is styled before merging, otherwise fills and
+    borders only render on the top-left cell of the merge.
+    """
+    for i in range(span):
+        _cell(ws, col + i, row, **kw)
+    cell = _cell(ws, col, row, value=value, **kw)
+    if span > 1:
+        _merge(ws, col, row, col + span - 1, row)
+    return cell
+
+
 def draw_tile(ws, col, row, label, value, colour):
     """3-row tile: accent bar / big number / label."""
-    _merge(ws, col, row,   col + 1, row)
-    _merge(ws, col, row+1, col + 1, row+1)
-    _merge(ws, col, row+2, col + 1, row+2)
+    _block(ws, col, row,   TILE_SPAN, fill_hex=NCC_GREEN)          # green cap
+    _block(ws, col, row+1, TILE_SPAN, value=value, font=F_TILE_NUM,
+           fill_hex=colour, align_h="center")
+    _block(ws, col, row+2, TILE_SPAN, value=label, font=F_TILE_LBL,
+           fill_hex=colour, align_h="center")
 
-    _cell(ws, col, row,   fill_hex=NCC_GREEN)          # green cap
-    _cell(ws, col, row+1, value=value,  font=F_TILE_NUM,
-          fill_hex=colour, align_h="center")
-    _cell(ws, col, row+2, value=label,  font=F_TILE_LBL,
-          fill_hex=colour, align_h="center")
-
-    ws.row_dimensions[row].height   = 5
-    ws.row_dimensions[row+1].height = 36
-    ws.row_dimensions[row+2].height = 14
+    ws.row_dimensions[row].height   = 6
+    ws.row_dimensions[row+1].height = 44
+    ws.row_dimensions[row+2].height = 18
 
 
-def section_bar(ws, col_start, col_end, row, label):
+def section_bar(ws, row, label):
     """Full-width green section header bar."""
-    _merge(ws, col_start, row, col_end, row)
-    _cell(ws, col_start, row, value=label, font=F_SECTION,
-          fill_hex=NCC_GREEN, align_h="left")
-    ws.row_dimensions[row].height = 18
+    _block(ws, FIRST_COL, row, GRID_COLS, value=label, font=F_SECTION,
+           fill_hex=NCC_GREEN)
+    ws.row_dimensions[row].height = 20
 
 
-def col_header_row(ws, col_start, row, labels, colour=NCC_NAVY):
-    """Dark header row for a table."""
-    for i, lbl in enumerate(labels):
-        _cell(ws, col_start + i, row, value=lbl,
-              font=F_COL_HDR, fill_hex=colour, align_h="left",
-              border=BORD_THIN)
+def panel_title(ws, col, row, label):
+    _block(ws, col, row, LABEL_SPAN, value=label, font=F_BODY_B)
     ws.row_dimensions[row].height = 16
 
 
-def data_row(ws, col_start, row, values, zebra=False):
+def panel_header(ws, col, row, label, value_label):
+    """Dark header row for a panel table (label block + value column)."""
+    _block(ws, col, row, LABEL_SPAN, value=label, font=F_COL_HDR,
+           fill_hex=NCC_NAVY, border=BORD_THIN)
+    _cell(ws, col + LABEL_SPAN, row, value=value_label, font=F_COL_HDR,
+          fill_hex=NCC_NAVY, align_h="right", border=BORD_THIN)
+    ws.row_dimensions[row].height = 18
+
+
+def panel_row(ws, col, row, label, value, zebra=False):
     bg = NCC_LGREY if zebra else WHITE
-    for i, v in enumerate(values):
-        _cell(ws, col_start + i, row, value=v,
-              font=F_BODY, fill_hex=bg, border=BORD_THIN)
-    ws.row_dimensions[row].height = 14
+    _block(ws, col, row, LABEL_SPAN, value=label, font=F_BODY,
+           fill_hex=bg, border=BORD_THIN)
+    _cell(ws, col + LABEL_SPAN, row, value=value, font=F_BODY,
+          fill_hex=bg, align_h="right", border=BORD_THIN)
+    ws.row_dimensions[row].height = 16
+
+
+def place_chart(ws, chart, col, row):
+    """Anchor a chart to a panel, sized so it cannot spill into the next one."""
+    chart.width  = CHART_W_CM
+    chart.height = CHART_H_CM
+    ws.add_chart(chart, f"{_col(col)}{row}")
+
+
+def reserve_chart_band(ws, start_row):
+    """Give the charts their own rows and return the first free row below."""
+    rows = math.ceil((CHART_H_CM * 96 / 2.54) / (BAND_ROW_PT * 96 / 72))
+    for r in range(start_row, start_row + rows):
+        ws.row_dimensions[r].height = BAND_ROW_PT
+    return start_row + rows
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
@@ -209,9 +265,15 @@ def main():
     # ── Action metrics ───────────────────────────────────────────────────────
     total_ac     = len(actions)
     complete_ac  = [a for a in actions if a.get("Status") == "Complete"]
+    # Two different questions, and the second one flattered us badly. Evidence at
+    # completion only looks at finished actions, so with almost nothing complete
+    # it reported 100% while most of the register carried no evidence at all.
+    # Evidence coverage is the honest denominator: every action on the books.
     evid_gaps    = [a for a in complete_ac if not a.get("Evidence Link")]
-    evid_pct     = (round(100 * (len(complete_ac) - len(evid_gaps)) / len(complete_ac))
-                    if complete_ac else 100)
+    evid_done_pct = (round(100 * (len(complete_ac) - len(evid_gaps)) / len(complete_ac))
+                     if complete_ac else 100)
+    evid_any     = [a for a in actions if (a.get("Evidence Link") or "").strip()]
+    evid_pct     = round(100 * len(evid_any) / total_ac) if total_ac else 0
     overdue_ac   = [a for a in actions
                     if parse_date(a.get("Due Date"))
                     and a.get("Status") not in ("Complete", "Cancelled")
@@ -234,124 +296,113 @@ def main():
         del wb["Dashboard"]
     ws = wb.create_sheet("Dashboard", 0)
     ws.sheet_view.showGridLines = False
-    ws.sheet_view.zoomScale = 90
+    ws.sheet_view.zoomScale = 85
 
-    # ── Column widths — spread across the full sheet ────────────────────────
-    col_widths = {
-        1:  3,   # A  spacer
-        2:  28,  # B  content
-        3:  13,  # C  value
-        4:  5,   # D  gap
-        5:  28,  # E  content
-        6:  13,  # F  value
-        7:  5,   # G  gap
-        8:  28,  # H  content
-        9:  13,  # I  value
-        10: 5,   # J  gap
-        11: 22,  # K  content
-        12: 12,  # L  value
-        13: 5,   # M  trailing gap
-    }
-    LAST_COL = 13   # rightmost column used by section bars / header
-    for c, w in col_widths.items():
-        ws.column_dimensions[_col(c)].width = w
+    # ── Column widths — one even 12-column grid, plus a left margin ─────────
+    ws.column_dimensions["A"].width = 3
+    for c in range(FIRST_COL, LAST_COL + 1):
+        ws.column_dimensions[_col(c)].width = COL_W
 
     # ════════════════════════════════════════════════════════════════════════
     # HEADER  (rows 1-5)
     # ════════════════════════════════════════════════════════════════════════
-    ws.row_dimensions[1].height = 6
+    ws.row_dimensions[1].height = 8
 
     # Green accent stripe
     for c in range(1, LAST_COL + 1):
         _cell(ws, c, 2, fill_hex=NCC_GREEN)
     ws.row_dimensions[2].height = 4
 
-    _merge(ws, 2, 3, LAST_COL, 3)
-    _cell(ws, 2, 3, "NCC Audit Reform and LGR Obligations Tracker",
-          font=F_TITLE)
-    ws.row_dimensions[3].height = 28
+    _block(ws, FIRST_COL, 3, GRID_COLS,
+           value="NCC Audit Reform and LGR Obligations Tracker", font=F_TITLE)
+    ws.row_dimensions[3].height = 30
 
-    _merge(ws, 2, 4, LAST_COL, 4)
-    _cell(ws, 2, 4,
-          f"Live status snapshot  ·  Refreshed {today.strftime('%d %B %Y')}",
-          font=F_SUBTITLE)
-    ws.row_dimensions[4].height = 14
+    _block(ws, FIRST_COL, 4, GRID_COLS,
+           value=f"Live status snapshot  ·  Refreshed {today.strftime('%d %B %Y')}",
+           font=F_SUBTITLE)
+    ws.row_dimensions[4].height = 16
 
-    ws.row_dimensions[5].height = 8
+    ws.row_dimensions[5].height = 12
 
     # ════════════════════════════════════════════════════════════════════════
     # KPI TILES  (rows 6-8)
     # ════════════════════════════════════════════════════════════════════════
     tiles = [
-        (2,  "OBLIGATIONS",    total_ob,         NCC_NAVY),
-        (5,  "OVERDUE",        len(overdue_ob),  RED   if overdue_ob  else GREEN_OK),
-        (8,  "DUE IN 30 DAYS", len(due_soon_ob), AMBER if due_soon_ob else GREEN_OK),
-        (11, "COMPLETE",       complete_ob,      GREEN_OK),
+        ("OBLIGATIONS",    total_ob,         NCC_NAVY),
+        ("OVERDUE",        len(overdue_ob),  RED   if overdue_ob  else GREEN_OK),
+        ("DUE IN 30 DAYS", len(due_soon_ob), AMBER if due_soon_ob else GREEN_OK),
+        ("COMPLETE",       complete_ob,      GREEN_OK),
     ]
-    for col, lbl, val, colour in tiles:
+    for col, (lbl, val, colour) in zip(TILE_ANCHORS, tiles):
         draw_tile(ws, col, 6, lbl, val, colour)
 
-    ws.row_dimensions[9].height = 10
+    ws.row_dimensions[9].height = 14
 
     # ════════════════════════════════════════════════════════════════════════
-    # OBLIGATIONS BREAKDOWN  (rows 10-28)
+    # OBLIGATIONS OVERVIEW — three panels, tables above their own chart
     # ════════════════════════════════════════════════════════════════════════
-    section_bar(ws, 2, LAST_COL, 10, "  OBLIGATIONS OVERVIEW")
-    ws.row_dimensions[10].height = 18
-    ws.row_dimensions[11].height = 6
+    section_bar(ws, 10, "  OBLIGATIONS OVERVIEW")
+    ws.row_dimensions[11].height = 8
 
-    # --- By Status (cols B-C) ---
-    _cell(ws, 2, 12, "Obligations by Status", font=F_BODY_B)
-    ws.row_dimensions[12].height = 14
-    col_header_row(ws, 2, 13, ["Status", "Count"])
+    p_status, p_risk, p_theme = PANEL_ANCHORS
+    HDR_ROW  = 13
+    DATA_ROW = HDR_ROW + 1
+
     status_pairs = [(s, status_counts.get(s, 0)) for s in status_order]
-    for i, (name, cnt) in enumerate(status_pairs):
-        data_row(ws, 2, 14 + i, [name, cnt], zebra=(i % 2 == 1))
+    risk_order   = ["High", "Medium", "Low"]
+    risk_pairs   = [(r, risk_counts.get(r, 0)) for r in risk_order]
+    theme_pairs  = sorted(theme_counts.items(), key=lambda x: -x[1])
 
-    # --- By Risk (cols E-F) ---
-    _cell(ws, 5, 12, "Obligations by Risk", font=F_BODY_B)
-    col_header_row(ws, 5, 13, ["Risk Rating", "Count"])
-    risk_order = ["High", "Medium", "Low"]
-    for i, r in enumerate(risk_order):
-        data_row(ws, 5, 14 + i, [r, risk_counts.get(r, 0)], zebra=(i % 2 == 1))
+    panels = [
+        (p_status, "Obligations by Status", "Status",      status_pairs),
+        (p_risk,   "Obligations by Risk",   "Risk Rating", risk_pairs),
+        (p_theme,  "Obligations by Theme",  "Theme",       theme_pairs),
+    ]
+    for col, title, hdr, pairs in panels:
+        panel_title(ws, col, 12, title)
+        panel_header(ws, col, HDR_ROW, hdr, "Count")
+        for i, (name, cnt) in enumerate(pairs):
+            panel_row(ws, col, DATA_ROW + i, name, cnt, zebra=(i % 2 == 1))
 
-    # --- By Theme (cols H-I) ---
-    _cell(ws, 8, 12, "Obligations by Theme", font=F_BODY_B)
-    col_header_row(ws, 8, 13, ["Theme", "Count"])
-    theme_pairs = sorted(theme_counts.items(), key=lambda x: -x[1])
-    for i, (name, cnt) in enumerate(theme_pairs):
-        data_row(ws, 8, 14 + i, [name, cnt], zebra=(i % 2 == 1))
+    # Charts start below the longest table, with a blank row of breathing space
+    spacer_row = DATA_ROW + max(len(p[3]) for p in panels)
+    ws.row_dimensions[spacer_row].height = 14
+    chart_row  = spacer_row + 1
 
-    # charts row
-    chart_row = 19
+    def _val_col(col):
+        return col + LABEL_SPAN
 
     # Status bar chart — vertical bars, value labels on each bar
     sc = BarChart()
     sc.title    = "Obligations by Status"
-    sc.height   = 9
-    sc.width    = 14
     sc.legend   = None
     sc.grouping = "clustered"
     sc.type     = "col"
-    sc.add_data(Reference(ws, min_col=3, min_row=13, max_row=18),
-                titles_from_data=True)
-    sc.set_categories(Reference(ws, min_col=2, min_row=14, max_row=18))
+    last = HDR_ROW + len(status_pairs)
+    sc.add_data(Reference(ws, min_col=_val_col(p_status), min_row=HDR_ROW,
+                          max_row=last), titles_from_data=True)
+    sc.set_categories(Reference(ws, min_col=p_status, min_row=DATA_ROW,
+                                max_row=last))
     sc.series[0].graphicalProperties.solidFill = NCC_GREEN
     sc.series[0].graphicalProperties.line.solidFill = NCC_GREEN
+    # Ensure both axes render — openpyxl can silently drop them
+    sc.x_axis.delete = False
+    sc.y_axis.delete = False
     sc.dLbls = DataLabelList()
     sc.dLbls.showVal     = True
     sc.dLbls.showCatName = False
     sc.dLbls.showSerName = False
-    ws.add_chart(sc, f"B{chart_row}")
+    place_chart(ws, sc, p_status, chart_row)
 
     # Risk pie chart — slices labelled with category name + percentage
     pc = PieChart()
     pc.title  = "Obligations by Risk"
-    pc.height = 9
-    pc.width  = 12
-    pc.add_data(Reference(ws, min_col=6, min_row=13, max_row=16),
-                titles_from_data=True)
-    pc.set_categories(Reference(ws, min_col=5, min_row=14, max_row=16))
+    pc.legend = None            # slice labels already name each category
+    last = HDR_ROW + len(risk_pairs)
+    pc.add_data(Reference(ws, min_col=_val_col(p_risk), min_row=HDR_ROW,
+                          max_row=last), titles_from_data=True)
+    pc.set_categories(Reference(ws, min_col=p_risk, min_row=DATA_ROW,
+                                max_row=last))
     slice_colours = [RED, AMBER, GREEN_OK]
     for idx, hex_c in enumerate(slice_colours):
         pt = DataPoint(idx=idx)
@@ -363,19 +414,25 @@ def main():
     pc.dLbls.showPercent = True
     pc.dLbls.showVal     = False
     pc.dLbls.showSerName = False
-    ws.add_chart(pc, f"E{chart_row}")
+    # Empty categories have no slice, so their "0%" label lands on the title
+    for idx, (_, cnt) in enumerate(risk_pairs):
+        if not cnt:
+            pc.dLbls.dLbl.append(
+                DataLabel(idx=idx, showCatName=False, showPercent=False,
+                          showVal=False, showSerName=False,
+                          showLegendKey=False, showBubbleSize=False))
+    place_chart(ws, pc, p_risk, chart_row)
 
     # Theme bar chart — horizontal so long theme names are fully readable
     tc = BarChart()
     tc.title  = "Obligations by Theme"
-    tc.height = 9
-    tc.width  = 14
     tc.legend = None
     tc.type   = "bar"   # horizontal — categories appear on left Y-axis
-    n_themes  = len(theme_pairs)
-    tc.add_data(Reference(ws, min_col=9, min_row=13, max_row=13 + n_themes),
-                titles_from_data=True)
-    tc.set_categories(Reference(ws, min_col=8, min_row=14, max_row=13 + n_themes))
+    last = HDR_ROW + len(theme_pairs)
+    tc.add_data(Reference(ws, min_col=_val_col(p_theme), min_row=HDR_ROW,
+                          max_row=last), titles_from_data=True)
+    tc.set_categories(Reference(ws, min_col=p_theme, min_row=DATA_ROW,
+                                max_row=last))
     tc.series[0].graphicalProperties.solidFill = NCC_NAVY
     tc.series[0].graphicalProperties.line.solidFill = NCC_NAVY
     # Ensure both axes render — openpyxl can silently drop them
@@ -385,80 +442,92 @@ def main():
     tc.dLbls.showVal     = True
     tc.dLbls.showCatName = False
     tc.dLbls.showSerName = False
-    ws.add_chart(tc, f"H{chart_row}")
+    place_chart(ws, tc, p_theme, chart_row)
 
     # ════════════════════════════════════════════════════════════════════════
-    # ACTIONS & INTELLIGENCE  (rows 30-38)
+    # ACTIONS & INTELLIGENCE — starts below the chart band, never on top of it
     # ════════════════════════════════════════════════════════════════════════
-    ai_top = 40
-    ws.row_dimensions[ai_top - 1].height = 8
-    section_bar(ws, 2, LAST_COL, ai_top, "  ACTIONS & INTELLIGENCE FEED")
+    ai_top = reserve_chart_band(ws, chart_row) + 1
+    ws.row_dimensions[ai_top - 1].height = 14
+    section_bar(ws, ai_top, "  ACTIONS & INTELLIGENCE FEED")
+    ws.row_dimensions[ai_top + 1].height = 8
 
-    # Actions table
-    col_header_row(ws, 2, ai_top + 1, ["Action Summary", "Count"])
     action_lines = [
         ("Total actions",      total_ac),
         ("In progress",        sum(1 for a in actions if a.get("Status") == "In progress")),
         ("Complete",           len(complete_ac)),
         ("Overdue",            len(overdue_ac)),
         ("Avg. progress",      f"{avg_prog}%"),
-        ("Evidence coverage",  f"{evid_pct}%"),
+        ("Evidence coverage",  f"{evid_pct}% ({len(evid_any)}/{total_ac})"),
+        ("Evidence at completion", f"{evid_done_pct}%"),
     ]
-    for i, (lbl, val) in enumerate(action_lines):
-        data_row(ws, 2, ai_top + 2 + i, [lbl, val], zebra=(i % 2 == 1))
-
-    # Intelligence table
-    col_header_row(ws, 5, ai_top + 1, ["Intelligence Feed", "Count"])
     intel_lines = [
-        ("Items captured",        intel_total),
+        ("Items captured",         intel_total),
         ("Flagged material",       intel_material),
         ("Material (last 30 days)", intel_recent),
         ("Awaiting review",        intel_unrev),
     ]
-    for i, (lbl, val) in enumerate(intel_lines):
-        data_row(ws, 5, ai_top + 2 + i, [lbl, val], zebra=(i % 2 == 1))
+    ai_hdr = ai_top + 2
+    for col, hdr, lines in ((p_status, "Action Summary",    action_lines),
+                            (p_risk,   "Intelligence Feed", intel_lines)):
+        panel_header(ws, col, ai_hdr, hdr, "Count")
+        for i, (lbl, val) in enumerate(lines):
+            panel_row(ws, col, ai_hdr + 1 + i, lbl, val, zebra=(i % 2 == 1))
 
     # ════════════════════════════════════════════════════════════════════════
-    # ATTENTION NEEDED  (rows 40+)
+    # ATTENTION NEEDED — full-width table so obligation text is readable
     # ════════════════════════════════════════════════════════════════════════
-    attn_top = 52
-    ws.row_dimensions[attn_top - 1].height = 8
-    section_bar(ws, 2, LAST_COL, attn_top, "  ATTENTION NEEDED")
+    attn_top = ai_hdr + 1 + max(len(action_lines), len(intel_lines)) + 1
+    ws.row_dimensions[attn_top - 1].height = 14
+    section_bar(ws, attn_top, "  ATTENTION NEEDED")
+    ws.row_dimensions[attn_top + 1].height = 8
 
-    col_header_row(ws, 2, attn_top + 1,
-                   ["ID", "Obligation", "", "Owner", "Target", "Status"])
+    # column spans across the 12-column grid: ID / Obligation / Owner / Target / Flag
+    attn_spans = [1, 6, 3, 1, 1]
+    hdr_row    = attn_top + 2
+    col = FIRST_COL
+    for span, lbl in zip(attn_spans,
+                         ["ID", "Obligation", "Owner", "Target", "Flag"]):
+        _block(ws, col, hdr_row, span, value=lbl, font=F_COL_HDR,
+               fill_hex=NCC_NAVY, border=BORD_THIN)
+        col += span
+    ws.row_dimensions[hdr_row].height = 18
 
     flagged = [(o, "Overdue") for o in overdue_ob] + \
               [(o, "Due soon") for o in due_soon_ob]
 
     if not flagged:
-        _merge(ws, 2, attn_top + 2, 7, attn_top + 2)
-        _cell(ws, 2, attn_top + 2,
-              "Nothing overdue or due within 30 days — all obligations on track.",
-              font=F_OK, fill_hex=WHITE)
-        ws.row_dimensions[attn_top + 2].height = 14
+        _block(ws, FIRST_COL, hdr_row + 1, GRID_COLS,
+               value="Nothing overdue or due within 30 days — all obligations on track.",
+               font=F_OK, fill_hex=WHITE, border=BORD_THIN)
+        ws.row_dimensions[hdr_row + 1].height = 20
     else:
         for i, (o, why) in enumerate(flagged):
-            r = attn_top + 2 + i
+            r = hdr_row + 1 + i
             bg = NCC_LGREY if i % 2 == 1 else WHITE
             target = parse_date(o.get("Target Date"))
             why_font = F_ALERT_R if why == "Overdue" else F_ALERT_A
+            text = (o.get("Obligation") or "").strip()
+            if len(text) > 160:
+                text = text[:159] + "…"
 
-            _cell(ws, 2, r, o.get("Obligation ID", ""), font=F_BODY_B,
-                  fill_hex=bg, border=BORD_THIN)
-            _merge(ws, 3, r, 4, r)
-            _cell(ws, 3, r, (o.get("Obligation") or "")[:80], font=F_BODY,
-                  fill_hex=bg, border=BORD_THIN, wrap=True)
-            _cell(ws, 5, r, o.get("Owner") or "Unassigned", font=F_BODY,
-                  fill_hex=bg, border=BORD_THIN)
-            _cell(ws, 6, r, target.strftime("%d %b %Y") if target else "",
-                  font=F_BODY, fill_hex=bg, border=BORD_THIN)
-            _cell(ws, 7, r, why, font=why_font, fill_hex=bg,
-                  border=BORD_THIN, align_h="center")
-            ws.row_dimensions[r].height = 28
+            values = [
+                (o.get("Obligation ID", ""), F_BODY_B, "left",   False),
+                (text,                       F_BODY,   "left",   True),
+                (o.get("Owner") or "Unassigned", F_BODY, "left", True),
+                (target.strftime("%d %b %Y") if target else "", F_BODY, "left", False),
+                (why,                        why_font, "center", False),
+            ]
+            col = FIRST_COL
+            for span, (val, fnt, align, wrap) in zip(attn_spans, values):
+                _block(ws, col, r, span, value=val, font=fnt, fill_hex=bg,
+                       border=BORD_THIN, align_h=align, wrap=wrap)
+                col += span
+            ws.row_dimensions[r].height = 34
 
     # ── Footer ───────────────────────────────────────────────────────────────
-    footer_row = attn_top + 3 + max(len(flagged), 1) + 1
+    footer_row = hdr_row + 1 + max(len(flagged), 1) + 1
+    ws.row_dimensions[footer_row - 1].height = 10
     ws.row_dimensions[footer_row].height = 4
     for c in range(1, LAST_COL + 1):
         _cell(ws, c, footer_row, fill_hex=NCC_GREEN)
@@ -471,7 +540,9 @@ def main():
 
     print(f"Dashboard refreshed for {today.strftime('%d %B %Y')}.")
     print(f"  Obligations: {total_ob}  Overdue: {len(overdue_ob)}  Due soon: {len(due_soon_ob)}")
-    print(f"  Actions: {total_ac}  Overdue: {len(overdue_ac)}  Evidence coverage: {evid_pct}%")
+    print(f"  Actions: {total_ac}  Overdue: {len(overdue_ac)}  "
+          f"Evidence coverage: {evid_pct}% ({len(evid_any)}/{total_ac})  "
+          f"at completion: {evid_done_pct}%")
     print(f"  Intelligence: {intel_total} captured, {intel_material} material, {intel_unrev} awaiting review")
 
 

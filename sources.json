@@ -24,8 +24,23 @@
     "/government/collections/nottinghamshire-and-nottingham-local-government-reorganisation",
     "/government/consultations/local-government-reorganisation-in-nottinghamshire-and-nottingham",
     "/government/publications/local-audit-reform",
+    "/government/publications/english-devolution-and-community-empowerment-bill-devolution-framework-explainers",
     "/government/collections/statutory-intervention-nottingham-city-council-minded-to-decision"
   ],
+  "legislation": {
+    "_comment": "legislation.gov.uk title feed. The Parliament Bills API tracks a bill up to Royal Assent, but a duty only becomes live when it is COMMENCED by statutory instrument — which happens here, not on GOV.UK. Watching an Act by title returns the Act plus every commencement, transitional and consequential SI made under it. 'context' is appended to the title before scoring, because a bare SI title says nothing about why we watch it; write what the Act actually bears on.",
+    "enabled": true,
+    "titles": [
+      {
+        "title": "English Devolution and Community Empowerment",
+        "context": "local audit and accountability audit committee local government reorganisation"
+      },
+      {
+        "title": "Local Audit and Accountability",
+        "context": "local audit"
+      }
+    ]
+  },
   "parliament_search_terms": [
     "english devolution",
     "local audit",
@@ -122,7 +137,24 @@
       "revenue and customs",
       "hmrc",
       "employment tribunal",
-      "planning inspector"
+      "planning inspector",
+      "mental health",
+      "public health",
+      "heat-health",
+      "health professionals",
+      "health economics",
+      "health devolution",
+      "anti-slavery",
+      "aqua book",
+      "adult social care",
+      "children's services",
+      "ofsted",
+      "care quality commission"
+    ],
+    "_comment_document_types": "GOV.UK profile pages, which match only because a person's name or job title contains our keywords. Keep this list to profile types: 'detailed_guide' was tried here and wrongly dropped the Exceptional Financial Support series.",
+    "exclude_document_types": [
+      "person",
+      "ministerial_role"
     ],
     "exclude_nations": [
       "scotland",
@@ -130,6 +162,25 @@
       "wales",
       "welsh",
       "northern ireland"
+    ],
+    "_comment_other_authorities": "Other authorities under intervention, EFS or envoy arrangements. Their letters, reports and support requests match our intervention keywords but say nothing about Nottingham's timeline. Dropped UNLESS the title also mentions somewhere in keep_if_mentions — so a joint or comparative item naming Nottingham still gets through.",
+    "keep_if_mentions": [
+      "nottingham",
+      "nottinghamshire",
+      "emcca",
+      "east midlands"
+    ],
+    "exclude_other_authorities": [
+      "liverpool",
+      "birmingham",
+      "thurrock",
+      "slough",
+      "woking",
+      "croydon",
+      "warrington",
+      "sandwell",
+      "tower hamlets",
+      "spelthorne"
     ],
     "exclude_lgr_councils": [
       "cambridgeshire",

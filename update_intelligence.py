@@ -43,6 +43,7 @@ from audit_logic import (
     make_hash,
     to_iso_date,
 )
+from sheet_format import format_data_sheet
 from scraper_extensions import (
     ScrapedItem,
     scrape_cipfa,
@@ -132,10 +133,14 @@ def fetch_govuk_search(terms, organisations, since_date):
 
     for term in terms:
         try:
+            # No "order" here: q is free-text OR matching, so a term like
+            # "local government reorganisation" matches ~68,000 documents.
+            # Sorting those newest-first and taking 40 returns the last day of
+            # gov.uk output on any subject. Relevance order is what makes the
+            # term list actually find the documents it names.
             data = get_json(GOVUK_SEARCH, {
                 "q": term,
                 "count": 40,
-                "order": "-public_timestamp",
                 "fields": fields,
                 "filter_public_timestamp": since_filter,
             })
@@ -159,7 +164,11 @@ def fetch_govuk_search(terms, organisations, since_date):
             print(f"  [govuk-search] org '{org}' failed: {exc}")
             time.sleep(RATE_LIMIT)
             continue
-        items.extend(_parse_govuk_results(data.get("results", []), since_date))
+        results = data.get("results", [])
+        if len(results) >= 100:
+            print(f"  [govuk-search] org '{org}' filled the page — anything older "
+                  f"than the newest 100 items was not seen. Run this weekly.")
+        items.extend(_parse_govuk_results(results, since_date))
         time.sleep(RATE_LIMIT)
 
     return items
@@ -193,11 +202,13 @@ def _parse_govuk_results(results, since_date):
         published = to_iso_date(result.get("public_timestamp"))
         if published and published < since_date:
             continue
-        category = _GOVUK_CATEGORY.get(result.get("content_store_document_type", ""), "Guidance")
+        doc_type = result.get("content_store_document_type") or ""
+        category = _GOVUK_CATEGORY.get(doc_type, "Guidance")
         parsed.append({
             "Title": title, "Source": "GOV.UK", "Category": category,
             "Published": published, "URL": url,
             "ScoreText": f"{title} {result.get('description') or ''}",
+            "DocumentType": doc_type,
         })
     return parsed
 
@@ -266,6 +277,69 @@ def fetch_parliament_bills(terms):
                 "Title": title, "Source": "Parliament", "Category": "Bill",
                 "Published": to_iso_date(bill.get("lastUpdate")),
                 "URL": f"https://bills.parliament.uk/bills/{bill_id}",
+            })
+        time.sleep(RATE_LIMIT)
+    return items
+
+
+# ---------------------------------------------------------------------------
+# Source 3b: legislation.gov.uk (Acts we watch, and the SIs made under them)
+# ---------------------------------------------------------------------------
+
+def fetch_legislation(config: dict, since_date: str) -> list[dict]:
+    """
+    Follow watched Acts on legislation.gov.uk. The Bills API stops at Royal
+    Assent, but a duty only bites once it is commenced by SI — so this is where
+    "the Act passed" turns into "the Act applies to us".
+    """
+    cfg = config.get("legislation", {})
+    if not cfg.get("enabled"):
+        return []
+
+    items = []
+    for entry in cfg.get("titles", []):
+        title_query = entry.get("title", "")
+        if not title_query:
+            continue
+        try:
+            response = requests.get(
+                "https://www.legislation.gov.uk/all/data.feed",
+                params={"title": title_query},
+                headers={"User-Agent": HEADERS["User-Agent"]},
+                timeout=TIMEOUT,
+            )
+            response.raise_for_status()
+        except requests.RequestException as exc:
+            print(f"  [legislation] '{title_query}' failed: {exc}")
+            time.sleep(RATE_LIMIT)
+            continue
+
+        soup = BeautifulSoup(response.text, "xml")
+        for node in soup.find_all("entry"):
+            title_node = node.find("title")
+            link_node = node.find("link")
+            if not title_node or not link_node:
+                continue
+            title = title_node.get_text(strip=True)
+            url = (link_node.get("href") or "").replace("http://", "https://")
+            if not title or not url:
+                continue
+            doc_type = node.find("DocumentMainType")
+            kind = doc_type.get("Value") if doc_type else ""
+            published = to_iso_date((node.find("published").get_text(strip=True)
+                                     if node.find("published") else ""))
+            # A watched Act drags its whole back-catalogue of SIs with it (the
+            # 2014 Act has 14, most from 2014-16). Same since_date cut as
+            # everywhere else, so only live developments reach the sheet.
+            if published and published < since_date:
+                continue
+            items.append({
+                "Title": title,
+                "Source": "legislation.gov.uk",
+                "Category": "Act" if "Act" in kind else "Statutory Instrument",
+                "Published": published,
+                "URL": url,
+                "ScoreText": f"{title} {entry.get('context', '')}",
             })
         time.sleep(RATE_LIMIT)
     return items
@@ -381,7 +455,7 @@ def update_workbook(new_items, config):
     added_by_verdict = {"Yes": 0, "Unclear": 0}
     possible_obligations = []
     for item in new_items:
-        if is_excluded(item["Title"], exclusions):
+        if is_excluded(item["Title"], exclusions, item.get("DocumentType", "")):
             excluded += 1
             continue
 
@@ -426,6 +500,9 @@ def update_workbook(new_items, config):
         added += 1
         added_by_source[item["Source"]] = added_by_source.get(item["Source"], 0) + 1
         added_by_verdict[verdict] += 1
+
+    # Newly appended rows carry no styling, so re-apply the table treatment.
+    format_data_sheet(ws)
 
     try:
         wb.save(WORKBOOK)
@@ -481,6 +558,11 @@ def main():
     bills = fetch_parliament_bills(config.get("parliament_search_terms", []))
     print(f"  {len(bills)} items")
     items.extend(bills)
+
+    print("Fetching watched legislation...")
+    legislation = fetch_legislation(config, since)
+    print(f"  {len(legislation)} items")
+    items.extend(legislation)
 
     print("Scraping PSAA...")
     psaa = scrape_psaa(config)

@@ -38,13 +38,15 @@ def to_iso_date(raw: str | None) -> str:
     return ""
 
 
-def is_excluded(title: str, rules: dict) -> bool:
+def is_excluded(title: str, rules: dict, document_type: str = "") -> bool:
     """
     Hard pre-filter: drop items entirely before they are scored or stored.
     Drops devolved-nation content, LGR stories naming other counties, and
     items matching exclude_keywords (e.g. HMRC tax tribunal cases that match
     "commissioner" in its legal sense rather than the intervention sense).
     """
+    if document_type and document_type in rules.get("exclude_document_types", []):
+        return True
     lowered = title.lower()
     if any(nation in lowered for nation in rules.get("exclude_nations", [])):
         return True
@@ -54,6 +56,12 @@ def is_excluded(title: str, rules: dict) -> bool:
         council in lowered for council in rules.get("exclude_lgr_councils", [])
     ):
         return True
+    # Another authority's intervention / EFS / envoy paperwork. Only drop it if
+    # our own patch is not also named, so joint and comparative items survive.
+    others = rules.get("exclude_other_authorities", [])
+    if others and not any(k in lowered for k in rules.get("keep_if_mentions", [])):
+        if any(authority in lowered for authority in others):
+            return True
     return False
 
 
@@ -148,6 +156,7 @@ OWNERS = {
     "Legal and Governance": "Beth Brown (Strategic Director of Legal and Governance)",
     "Risk": "D Bowring (Risk)",
     "Procurement": "A Spice / D Cafferty (Procurement)",
+    "HR and EDI": "Lee Mann (Strategic Director of HR & EDI)",
 }
 
 # Recognisable tokens for each real person, used by validate_obligation() to

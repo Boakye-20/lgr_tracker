@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from audit_logic import OWNERS, s151_note_for_action
 
-LAST_UPDATED = "2026-07-11"
+LAST_UPDATED = "2026-08-04"
 
 # Column order for the Obligations sheet. "Obligation Level" is appended last so
 # the existing data-validation ranges on Risk (F) and Status (H) are undisturbed.
@@ -25,6 +25,10 @@ OBLIGATION_COLUMNS = [
     "Risk Rating", "Target Date", "Status", "Evidence Required",
     "Evidence Location", "Sign Off By", "Last Updated", "Notes",
     "Obligation Level",
+    # Appended last, after "Obligation Level", so the reading order of the sheet
+    # is unchanged. DERIVED from ACTIONS by populate_tracker.py — never type into
+    # it, the next rebuild overwrites it.
+    "Linked Actions",
 ]
 
 ACTION_COLUMNS = [
@@ -47,6 +51,8 @@ IMP_CTTE_PACK = (
     "https://committee.nottinghamcity.gov.uk/documents/g11742/"
     "Public%20reports%20pack%2004th-Jun-2026%2014.00%20Improvement%20Committee.pdf"
 )
+AUDIT_CTTE_PAGE = "https://committee.nottinghamcity.gov.uk/ieListMeetings.aspx?CommitteeId=145"
+IMP_CTTE_PAGE = "https://committee.nottinghamcity.gov.uk/ieListMeetings.aspx?CommitteeId=1175"
 ACCOUNTS_PAGE = (
     "https://www.nottinghamcity.gov.uk/your-council/about-the-council/"
     "statement-of-accounts-and-reports/"
@@ -101,7 +107,8 @@ OBLIGATIONS = [
         "24 March 2026 Directions; Improvement Committee report 4 June 2026",
         T_GOV, OWNERS["Chief Executive"], "High", "2026-06-24", "In progress",
         "Improvement Committee endorsement minute; published CSIP document.",
-        "", "Improvement Committee / Ministerial Envoys",
+        "https://www.gov.uk/government/collections/statutory-intervention-nottingham-city-council-minded-to-decision",
+        "Improvement Committee / Ministerial Envoys",
         "MOST TIME-CRITICAL obligation. Deadline 24 June 2026 = three months from "
         "the 24 March 2026 directions.",
         "Statutory",
@@ -115,7 +122,7 @@ OBLIGATIONS = [
         T_FIN, OWNERS["Section 151"], "High", "", "Ongoing",
         "Audit Committee treasury and accounts papers; CSIP performance reporting; "
         "six-monthly Improvement Committee reports.",
-        "", "Improvement Committee",
+        IMP_CTTE_PAGE, "Improvement Committee",
         "SAO Finance: S Fair. Monitored six-monthly via the Improvement Committee.",
         "Monitoring",
     ),
@@ -128,7 +135,7 @@ OBLIGATIONS = [
         T_GOV, OWNERS["Legal and Governance"], "Medium", "", "Ongoing",
         "Improvement Committee reports; Corporate Scrutiny Committee papers; "
         "updated Scheme of Delegation.",
-        "", "Improvement Committee",
+        IMP_CTTE_PAGE, "Improvement Committee",
         "Ongoing CSIP programme.",
         "Monitoring",
     ),
@@ -142,7 +149,7 @@ OBLIGATIONS = [
         T_CONTROLS, OWNERS["Internal Audit"], "High", "", "Ongoing",
         "Internal Audit Annual Plan and progress reports to Audit Committee; Head "
         "of Internal Audit opinion; alignment note against LAO standards.",
-        "", "Audit Committee",
+        AUDIT_CTTE_PAGE, "Audit Committee",
         "Direct CSIP obligation: internal audit must align with LAO standards. "
         "Supported by D Bowring (Risk).",
         "Monitoring",
@@ -155,7 +162,8 @@ OBLIGATIONS = [
         T_GOV, OWNERS["Chief Executive"], "High", "", "Ongoing",
         "Improvement Committee meeting records showing Envoy attendance; responses "
         "to Envoy recommendations.",
-        "", "Chief Executive / Improvement Committee",
+        "https://www.gov.uk/government/collections/statutory-intervention-nottingham-city-council-minded-to-decision",
+        "Chief Executive / Improvement Committee",
         "Since 24 March 2026 the oversight structure uses Ministerial Envoys, not "
         "Commissioners.",
         "Monitoring",
@@ -168,7 +176,7 @@ OBLIGATIONS = [
         T_FIN, OWNERS["Finance and Treasury"], "High", "2026-07-31", "In progress",
         "Management response document; Audit Committee minute noting acceptance; "
         "completed action evidence for each recommendation.",
-        "", "Audit Committee",
+        AUDIT_CTTE_PAGE, "Audit Committee",
         "Tie target to the next Audit Committee cycle.",
         "Periodic",
     ),
@@ -204,9 +212,19 @@ OBLIGATIONS = [
         T_AUDIT_PROC, OWNERS["Internal Audit"], "High", "2026-09-30", "In progress",
         "Audit Committee briefing note on LAO implications; updated audit plan if "
         "needed.",
-        "", "Audit Committee",
-        "PSAA-procured contract runs to 2027/28. Bill Butler named preferred LAO "
-        "Chair candidate May 2026. Was the old OB-002.",
+        "https://assets.publishing.service.gov.uk/media/6926f871345e31ab14ecf524/"
+        "Local_Audit_Transition_Plan.pdf  (MHCLG Local Audit Transition Plan, "
+        "Nov 2025 — Annex A carries the milestone timeline);  "
+        "https://www.gov.uk/government/organisations/local-audit-office",
+        "Audit Committee",
+        "CORRECTED 4 Aug 2026 against the MHCLG Local Audit Transition Plan "
+        "(Nov 2025), which states PSAA's contracts with audit firms 'have "
+        "recently been extended until 2030' — the tracker previously said "
+        "2027/28, understating the horizon by two years. Auditor appointment "
+        "and contracting duties transfer to the LAO in Spring 2027, with PSAA "
+        "staff and the existing contracts novating across. Bill Butler is "
+        "CONFIRMED as LAO Chair from 1 July 2026 (previously recorded as "
+        "preferred candidate). Was the old OB-002.",
         "Monitoring",
     ),
     _ob(
@@ -218,7 +236,8 @@ OBLIGATIONS = [
         "In progress",
         "Recommendation Tracker rows moved from Pending to Responded; completion "
         "evidence for each sub-action.",
-        "", "Audit Committee",
+        "https://committee.nottinghamcity.gov.uk/ieListMeetings.aspx?CommitteeId=145",
+        "Audit Committee",
         "Parent obligation. Three sub-actions live in the Actions tab: A11.1 "
         "(exemption benchmarking), A11.2 (Table 5 clarification), A11.3 (UN "
         "PRI/UNGP legal briefing).",
@@ -233,9 +252,77 @@ OBLIGATIONS = [
         T_AUDIT_PROC, OWNERS["Internal Audit"], "High", "2026-09-30", "In progress",
         "Alignment strategy document approved by Audit Committee referencing new "
         "LAO framework parameters.",
-        "psaa.co.uk", "Audit Committee",
+        "https://www.gov.uk/government/publications/local-audit-office-chair-appointment",
+        "Audit Committee",
         "NEW IMMINENT REQUIREMENT tracking transition handovers before ultimate "
         "PSAA abolition.",
+        "Periodic",
+    ),
+    _ob(
+        "OB-A13",
+        "NCC must have an audit committee and arrange for it to exercise the four "
+        "statutory functions in section 33A of the Local Audit and Accountability "
+        "Act 2014: reviewing and scrutinising financial affairs; reviewing and "
+        "assessing risk management, internal control and governance arrangements; "
+        "reviewing and assessing economy, efficiency and effectiveness of resource "
+        "use; and making reports and recommendations to the authority.",
+        "Section 94, English Devolution and Community Empowerment Act 2026 "
+        "(inserting s.33A into the Local Audit and Accountability Act 2014), "
+        "commenced for Category 1 authorities from 15 July 2026 by SI 2026/812; "
+        "MHCLG letter to Section 151 Officers, 31 July 2026",
+        T_GOV, OWNERS["Section 151"], "High", "2026-09-25", "In progress",
+        "Audit Committee terms of reference mapped against the four s.33A "
+        "functions; constitution showing the committee is established; record of "
+        "independent member appointment once the membership regulations are in "
+        "force.",
+        # The full chain, in the order it happened: the duty, the instrument
+        # that switched it on, and the letter that told us about it.
+        "https://www.legislation.gov.uk/ukpga/2014/2/section/33A  (the duty);  "
+        "https://www.legislation.gov.uk/uksi/2026/812/made  (SI 2026/812, "
+        "commenced it 15 July 2026);  "
+        "evidence/2026-07-31-MHCLG-audit-committee-requirement.pdf  (MHCLG "
+        "letter to S151 Officers — not published on GOV.UK, filed alongside "
+        "this tracker)",
+        "Audit Committee",
+        "STATUTORY DUTY IN FORCE since 15 July 2026. MHCLG expects most "
+        "authorities already comply and asks to be told of any difficulty "
+        "(localaudit@communities.gov.uk). The independent member requirement is "
+        "NOT yet in force — s.94 provides for further regulations on membership, "
+        "appointments and allowances, to be followed by statutory guidance. "
+        "MHCLG encourages authorities without an independent member to begin "
+        "recruitment now so they are ready when the regulations commence.",
+        "Enduring",
+    ),
+    _ob(
+        "OB-A14",
+        "NCC must onboard the newly appointed Political Envoy and provide the "
+        "briefings and access needed for the envoy to discharge the advisory role "
+        "under the de-escalated intervention arrangements.",
+        "MHCLG appointment letter to Sir Stephen Houghton CBE, 15 July 2026 "
+        "(James Blythe, Deputy Director, Local Government Stewardship and "
+        "Interventions), appointing him Political Envoy for the purposes of the "
+        "Directions made 24 March 2026 under section 15(5) of the Local "
+        "Government Act 1999",
+        T_GOV, OWNERS["Chief Executive"], "High", "2026-09-24", "Not started",
+        "Schedule of induction and advisory sessions; reporting matrix defining "
+        "the advisory boundary; budget provision for envoy fees; records "
+        "submitted to the Continuous Improvement Committee.",
+        "https://www.gov.uk/government/publications/nottingham-city-council-"
+        "ministerial-envoy-appointment-letter-15-july-2026",
+        "Chief Executive / Continuous Improvement Committee",
+        "Sir Stephen Houghton CBE joins Sharon Kemp, who is Lead Envoy; the "
+        "Envoys may act jointly or severally and are accountable to the "
+        "Secretary of State. The letter asks them to provide support 'in an "
+        "advisory and mentoring capacity', particularly on the Best Value themes "
+        "of Continuous Improvement and Service Delivery. TWO POINTS THE "
+        "APPOINTMENT LETTER PUTS ON NCC: (1) fees of GBP 800 per day up to 75 "
+        "days a year, plus reasonable expenses, are the Authority's "
+        "responsibility to meet — a liability of up to GBP 60,000 a year per "
+        "envoy that needs budget provision; (2) the Secretary of State has asked "
+        "the Envoys to report within the first six months of the intervention, "
+        "which runs from the 24 March 2026 Directions, hence the target date. "
+        "Complements OB-A1, which covers Envoy membership of the Continuous "
+        "Improvement Committee.",
         "Periodic",
     ),
 
@@ -251,21 +338,38 @@ OBLIGATIONS = [
         T_LGR, OWNERS["LGR and Policy"], "High", "", "Ongoing",
         "Joint LGR committee papers; transition programme updates to Improvement "
         "Committee; cooperation records with other councils.",
-        "", "Chief Executive / Improvement Committee",
-        "LGR sits under the Chief Executive and the Director of Policy.",
+        "https://www.gov.uk/government/collections/nottinghamshire-and-nottingham-local-government-reorganisation",
+        "Chief Executive / Improvement Committee",
+        "See also OB-L8 on the MHCLG Devolution Framework Explainers. "
+        "LGR sits under the Chief Executive and the Director of Policy. MHCLG "
+        "issued non-statutory staffing issues guidance on 16 July 2026 covering "
+        "appointment and transfer of employees to the new single-tier councils; "
+        "gap analysis and staff consultation tracked as A-025 and A-026.",
         "Monitoring",
     ),
     _ob(
         "OB-L2",
         "NCC must track the MHCLG consultation decision and respond to the "
         "statutory order implications for Nottinghamshire and Nottingham.",
-        "MHCLG consultation for Nottinghamshire and Nottingham (from 25 March 2026)",
+        "Secretary of State decision letter to Nottinghamshire and Nottingham "
+        "council leaders, 16 July 2026; HCWS286 written ministerial statement",
         T_LGR, OWNERS["LGR and Policy"], "High", "", "Ongoing",
         "Council response to consultation; record of statutory order decision; "
         "legal advice on transition implications.",
-        "", "Chief Executive",
-        "CRITICAL MILESTONE: when the Secretary of State issues the final Statutory "
-        "Boundary Order, OB-L6 becomes live (S151 asset/liability review).",
+        "https://assets.publishing.service.gov.uk/media/6a58d3105ca06bf11ccb42f9/"
+        "Local_government_reorganisation_-_decision_letter_to_Nottinghamshire_and_"
+        "Nottingham_council_leaders.pdf",
+        "Chief Executive",
+        "CONSULTATION DECISION MADE 16 July 2026: Secretary of State confirmed the "
+        "two-unitary 'modified' option — 'Southwest' (Nottingham City plus wards "
+        "from Broxtowe, Gedling, Rushcliffe) and 'North and East' (Ashfield, "
+        "Bassetlaw, Mansfield, Newark and Sherwood plus remaining wards). Shadow "
+        "elections confirmed May 2027 (replacing scheduled local elections); "
+        "implementation targeted April 2028. Ministerial Envoy named as Sharon "
+        "Kemp. This is NOT yet OB-L6's trigger: the Structural Changes Order "
+        "(the statutory instrument itself) is still subject to Parliamentary "
+        "approval — officials to write separately with the implementation "
+        "timeline. OB-L6 becomes live only when that Order is made.",
         "Monitoring",
     ),
     _ob(
@@ -277,9 +381,11 @@ OBLIGATIONS = [
         T_LGR, OWNERS["LGR and Policy"], "High", "2027-05-01", "Ongoing",
         "Transition programme plan; governance framework for shadow authority; "
         "service continuity planning documents.",
-        "", "Chief Executive / Improvement Committee",
-        "Planning horizon: shadow authority elections approximately May 2027; "
-        "Vesting Day approximately 1 April 2028.",
+        "https://www.gov.uk/government/collections/nottinghamshire-and-nottingham-local-government-reorganisation",
+        "Chief Executive / Improvement Committee",
+        "Planning horizon: shadow authority elections CONFIRMED May 2027 (SoS "
+        "decision letter 16 July 2026, replacing scheduled local elections); "
+        "Vesting Day targeted 1 April 2028.",
         "Monitoring",
     ),
     _ob(
@@ -340,9 +446,31 @@ OBLIGATIONS = [
         T_LGR, OWNERS["LGR and Policy"], "Medium", "", "Ongoing",
         "LGR working team minutes detailing structural compliance parameters "
         "mapped against the June 2026 layout guides.",
-        "www.gov.uk", "Chief Executive / Improvement Committee",
+        "https://www.gov.uk/government/publications/local-government-reorganisation-implementation-guidance",
+        "Chief Executive / Improvement Committee",
         "NEW GUIDANCE INCORPORATION: ensures technical migration alignment with "
         "central criteria.",
+        "Monitoring",
+    ),
+    _ob(
+        "OB-L8",
+        "NCC must track the MHCLG Devolution Framework Explainers and assess how "
+        "the statutory functions they set out for Strategic Authorities shape the "
+        "operating model of the new unitary authorities.",
+        "English Devolution and Community Empowerment Act 2026: Devolution "
+        "Framework Explainers, MHCLG (last updated 8 June 2026)",
+        T_LGR, OWNERS["LGR and Policy"], "Medium", "2026-10-31", "Not started",
+        "Gap analysis mapping NCC service lines against the Strategic Authority "
+        "functions in the Explainers, reported to the LGR programme board.",
+        "https://www.gov.uk/government/publications/english-devolution-and-"
+        "community-empowerment-bill-devolution-framework-explainers",
+        "Chief Executive / Improvement Committee",
+        "SCOPE NOTE: the Explainers set out the statutory functions of STRATEGIC "
+        "AUTHORITIES. NCC is not a Strategic Authority — EMCCA is — so these are "
+        "not a duty on NCC directly. They matter because the new unitaries will "
+        "be constituent councils of EMCCA, so the Explainers define the boundary "
+        "between what EMCCA holds and what the unitaries hold. Monitoring, not "
+        "compliance.",
         "Monitoring",
     ),
 ]
@@ -548,9 +676,15 @@ ACTIONS = [
         "Monitor MHCLG announcements for the LGR consultation decision and "
         "the Statutory Boundary Order; on publication, set OB-L6's target "
         "date and notify the Section 151 Officer immediately.",
-        OWNERS["LGR and Policy"], "2026-07-11", "2026-08-31", "In progress", 0,
-        "",
-        "The Order is expected summer 2026 and triggers OB-L6 (Guide Part 12).",
+        OWNERS["LGR and Policy"], "2026-07-11", "2026-08-31", "In progress", 40,
+        "https://assets.publishing.service.gov.uk/media/6a58d3105ca06bf11ccb42f9/"
+        "Local_government_reorganisation_-_decision_letter_to_Nottinghamshire_and_"
+        "Nottingham_council_leaders.pdf",
+        "Consultation decision half done: SoS confirmed the two-unitary option "
+        "on 16 July 2026 (Southwest / North and East, elections May 2027). "
+        "Still monitoring for the Structural Changes Order itself, which "
+        "officials said would follow separately and remains subject to "
+        "Parliamentary approval — that is what triggers OB-L6 (Guide Part 12).",
     ),
     _ac(
         "A-019", "OB-L4",
@@ -569,5 +703,129 @@ ACTIONS = [
         OWNERS["Section 151"], "", "", "Not started", 0, "",
         "TRIGGER PENDING: dates are set when the Statutory Boundary Order is "
         "published (see A-018).",
+    ),
+    _ac(
+        "A-021", "OB-L1",
+        "Participate in joint implementation governance.",
+        OWNERS["LGR and Policy"], "2026-07-16", "", "Not started", 0, "",
+        "Joint programme governance structure to be agreed and implemented.",
+    ),
+    _ac(
+        "A-022", "OB-L1",
+        "Work with Nottinghamshire authorities on transition arrangements.",
+        OWNERS["LGR and Policy"], "2026-07-16", "", "Not started", 0, "",
+        "Joint programme to be set out and ownership and accountabilities to be "
+        "defined and progress monitored.",
+    ),
+    _ac(
+        "A-023", "OB-L1",
+        "Support development of new operating models, staffing arrangements and "
+        "service integration plans.",
+        OWNERS["HR and EDI"], "2026-07-16", "", "Not started", 0, "",
+        "Gather existing establishment and operating model details. Support "
+        "planning for new establishment and operating models. Ensure timely "
+        "onboarding processes.",
+    ),
+    _ac(
+        "A-025", "OB-L1",
+        "Review the MHCLG local government reorganisation staffing issues "
+        "guidance (16 July 2026) and complete a gap analysis against current "
+        "demerger and staffing transition assumptions.",
+        OWNERS["HR and EDI"], "2026-08-04", "2026-09-30", "Not started", 0,
+        "https://www.gov.uk/government/publications/local-government-reorganisation-staffing-issues-guidance",
+        "Checks the emerging operating model against central expectations on "
+        "appointment and transfer of staff to the new single-tier councils. "
+        "Feeds A-023.",
+    ),
+    _ac(
+        "A-026", "OB-L1",
+        "Use the MHCLG staffing guidance overview in joint-council consultation "
+        "with trade unions and staff on day-one staffing arrangements.",
+        OWNERS["HR and EDI"], "2026-08-04", "2026-10-31", "Not started", 0,
+        "https://www.gov.uk/government/publications/local-government-reorganisation-staffing-issues-guidance",
+        "The 3-page overview published alongside the full guidance is the "
+        "version intended for staff and union consultation.",
+    ),
+    _ac(
+        "A-027", "OB-A13",
+        "Map the Audit Committee's terms of reference against the four statutory "
+        "functions in s.33A of the Local Audit and Accountability Act 2014 and "
+        "report the result to the Audit Committee, identifying any constitutional "
+        "amendment needed.",
+        OWNERS["Section 151"], "2026-08-04", "2026-09-25", "Not started", 0,
+        "https://www.legislation.gov.uk/ukpga/2026/23/section/94/enacted",
+        "Duty in force since 15 July 2026. MHCLG expects most authorities already "
+        "comply, so this confirms compliance rather than builds it — and gives a "
+        "documented basis for telling MHCLG if any difficulty is foreseen. "
+        "Target: 25 September 2026 Audit Committee.",
+    ),
+    _ac(
+        "A-028", "OB-A13",
+        "Launch recruitment for an independent member of the Audit Committee, "
+        "including a public advertisement and role profile, ahead of the "
+        "membership regulations coming into force.",
+        OWNERS["Legal and Governance"], "2026-08-04", "2026-10-15", "Not started", 0,
+        "",
+        "Evidence: live public advertisement on the NCC jobs portal, role "
+        "profile, and the appointment route through to committee. MHCLG "
+        "encourages early recruitment — the independent member requirement is "
+        "not yet in force and will be commenced by regulations made under s.94, "
+        "so this is preparation rather than a duty in force. Starting now avoids "
+        "a compliance gap on commencement.",
+    ),
+    _ac(
+        "A-029", "OB-A13",
+        "Monitor for the s.94 regulations on audit committee membership, "
+        "appointments and allowances, and the statutory guidance that follows "
+        "them; on publication, reassess the terms of reference and the "
+        "independent member appointment against the final requirements.",
+        OWNERS["Section 151"], "2026-08-04", "", "Not started", 0, "",
+        "TRIGGER PENDING: dates are set when the membership regulations are laid. "
+        "Government has said this will happen 'when parliamentary time allows', "
+        "so there is no announced date to work to (Guide Part 12).",
+    ),
+    _ac(
+        "A-030", "OB-A14",
+        "Coordinate the initial political and executive induction sessions with "
+        "Political Envoy Sir Stephen Houghton CBE.",
+        OWNERS["Chief Executive"], "2026-08-04", "2026-09-15", "Not started", 0, "",
+        "Evidence: schedule of initial advisory sessions submitted to the "
+        "Continuous Improvement Committee.",
+    ),
+    _ac(
+        "A-031", "OB-A14",
+        "Update the executive reporting matrix to define the advisory and "
+        "mentoring boundaries of the Envoy role, covering both the Lead Envoy "
+        "and the Political Envoy and their power to act jointly or severally.",
+        OWNERS["Chief Executive"], "2026-08-04", "2026-09-30", "Not started", 0,
+        "https://www.gov.uk/government/publications/nottingham-city-council-"
+        "letter-to-council-leader-15-july-2026",
+        "Evidence: framework document signed off by the Leader (Cllr Neghat "
+        "Khan) and Executive Panel. Records the distinction between the former "
+        "Commissioner powers and the current advisory and mentoring role.",
+    ),
+    _ac(
+        "A-032", "OB-A14",
+        "Confirm budget provision for Political Envoy fees and expenses, and put "
+        "in place the approval route for exceeding the 75-day annual cap.",
+        OWNERS["Section 151"], "2026-08-04", "2026-09-30", "Not started", 0, "",
+        "The appointment letter makes envoy costs the Authority's "
+        "responsibility: GBP 800 per day, maximum 75 days a year, plus "
+        "reasonable expenses at senior officer rates. The cap cannot be exceeded "
+        "without prior Secretary of State approval, so the route needs to exist "
+        "before it is needed.",
+    ),
+    _ac(
+        "A-033", "OB-L8",
+        "Map NCC's single-tier operational workflows against the Strategic "
+        "Authority functions set out in the MHCLG Devolution Framework "
+        "Explainers, identifying which service lines sit with EMCCA and which "
+        "with the new unitary authorities.",
+        OWNERS["LGR and Policy"], "2026-08-04", "2026-10-31", "Not started", 0,
+        "https://www.gov.uk/government/publications/english-devolution-and-"
+        "community-empowerment-bill-devolution-framework-explainers",
+        "Evidence: structural gap analysis signed off by the Director of Policy "
+        "and reported to the LGR programme board. Establishes the EMCCA / "
+        "unitary boundary before day-one service allocation is fixed.",
     ),
 ]
