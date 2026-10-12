@@ -67,7 +67,7 @@ collection pages, the Parliament Bills API, PSAA, the National Audit Office,
 CIPFA, Parliament Committees (PAC and HCLG), EMCCA, and NCC's own Audit and
 Improvement Committee pages.
 
-All of it is controlled through `sources.json`, so you never edit the Python.
+All of it is controlled through `sources.json`.
 
 ## How relevance is scored
 
