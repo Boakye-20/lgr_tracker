@@ -5,7 +5,7 @@ devolution and Local Government Reorganisation; scores each change for how much
 it matters to Nottingham City Council; and turns the ones that matter into
 tracked obligations with owners, dates and evidence.
 
-Everything lives in one spreadsheet — `AuditTracker.xlsx` — with a handful of
+Everything lives in one spreadsheet, `AuditTracker.xlsx`, with a handful of
 Python scripts around it. No SharePoint, no Power Automate, no Power Apps. That
 is deliberate: those tools were the source of every problem in the previous
 version.
@@ -27,7 +27,7 @@ formatting a consistent picture is work Python does more reliably than Excel.
 
 | When | What you do | How long |
 | --- | --- | --- |
-| Once, ever | Install Python, create the virtual environment, run `setup_tracker.py` | — |
+| Once, ever | Install Python, create the virtual environment, run `setup_tracker.py` | - |
 | Weekly | Double-click `run_weekly_update.bat`, then review new items in the Intelligence tab | ~15 min |
 | Before a meeting | Double-click `run_build_dashboard.bat` | ~1 min |
 | Monthly | Double-click `run_monthly_report.bat`, read the Word report, send it | ~5 min |
@@ -40,7 +40,7 @@ Close `AuditTracker.xlsx` before running any of them.
 | --- | --- | --- |
 | Dashboard | Headline tiles, charts, "Attention needed" list | Generated |
 | Intelligence | Feed of new legislation and guidance | Scraper fills, you review |
-| Obligations | What NCC must do — **the important one** | You, by hand |
+| Obligations | What NCC must do (**the important one**) | You, by hand |
 | Actions | Steps taken against each obligation | You, by hand |
 
 ## The files
@@ -58,7 +58,7 @@ Close `AuditTracker.xlsx` before running any of them.
 | `audit_logic.py` | Scoring, theming, and the six-part obligation policy | Never, unless changing logic |
 | `scraper_extensions.py` | Scrapers for NAO, CIPFA, Committees, EMCCA, NCC | Never |
 | `sheet_format.py` | Spreadsheet formatting helpers | Never |
-| `seen_hashes.txt` | The scraper's memory of what it has already seen | Never — automatic |
+| `seen_hashes.txt` | The scraper's memory of what it has already seen | Never (automatic) |
 
 ## Sources scraped
 
@@ -67,7 +67,7 @@ collection pages, the Parliament Bills API, PSAA, the National Audit Office,
 CIPFA, Parliament Committees (PAC and HCLG), EMCCA, and NCC's own Audit and
 Improvement Committee pages.
 
-All of it is controlled through `sources.json` — you never edit the Python.
+All of it is controlled through `sources.json`, so you never edit the Python.
 
 ## How relevance is scored
 
@@ -89,7 +89,7 @@ python -m venv .venv
 .venv\Scripts\python.exe setup_tracker.py
 ```
 
-Use `python.exe -m pip` rather than `pip.exe` — some managed laptops block newly
+Use `python.exe -m pip` rather than `pip.exe`, because some managed laptops block newly
 created executables. Python 3.10 or newer.
 
 See [GUIDE.md](GUIDE.md) section 4 for the full walkthrough.
